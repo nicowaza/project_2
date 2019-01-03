@@ -160,53 +160,34 @@ loginRouter.post('/', (req, res) => {
 
 /***/ }),
 
-/***/ "./src/api/middlewares/auth.js":
-/*!*************************************!*\
-  !*** ./src/api/middlewares/auth.js ***!
-  \*************************************/
-/*! exports provided: configJWTStrategy */
+/***/ "./src/api/middlewares/jwtAuth.js":
+/*!****************************************!*\
+  !*** ./src/api/middlewares/jwtAuth.js ***!
+  \****************************************/
+/*! exports provided: verifyJwt */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 __webpack_require__.r(__webpack_exports__);
-/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "configJWTStrategy", function() { return configJWTStrategy; });
-/* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! passport */ "passport");
-/* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(passport__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var passport_jwt__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! passport-jwt */ "passport-jwt");
-/* harmony import */ var passport_jwt__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(passport_jwt__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "verifyJwt", function() { return verifyJwt; });
+/* harmony import */ var _users_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../users.json */ "./users.json");
+var _users_json__WEBPACK_IMPORTED_MODULE_0___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../../users.json */ "./users.json", 1);
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! jsonwebtoken */ "jsonwebtoken");
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(jsonwebtoken__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
 /* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _users_json__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../../../users.json */ "./users.json");
-var _users_json__WEBPACK_IMPORTED_MODULE_3___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../../users.json */ "./users.json", 1);
+ // import jwt from './jwt';
 
 
 
-
-
-const key = process.env.key; //A Passport strategy for authenticating with a JSON Web Token.
-// This module lets you authenticate endpoints using a JSON web token. It is intended to be     used to secure RESTful endpoints without sessions.
-// @https://github.com/themikenicholson/passport-jwt
-
-const configJWTStrategy = () => {
-  const opts = {
-    jwtFromRequest: passport_jwt__WEBPACK_IMPORTED_MODULE_1___default.a.ExtractJwt.fromAuthHeaderAsBearerToken(),
-    secretOrKey: key
-  };
-  passport__WEBPACK_IMPORTED_MODULE_0___default.a.use(new passport_jwt__WEBPACK_IMPORTED_MODULE_1___default.a.Strategy(opts, function (payload, done) {
-    _users_json__WEBPACK_IMPORTED_MODULE_3__.find({
-      username: payload.username
-    }, function (err, user) {
-      if (err) {
-        return done(err);
-      }
-
-      if (user) {
-        return done(null, user);
-      }
-
-      return done(null, false);
-    });
-  }));
+const secret = process.env.key;
+const verifyJwt = (req, res, next) => {
+  const userToken = req.headers['user-auth-token'];
+  jsonwebtoken__WEBPACK_IMPORTED_MODULE_1___default.a.verify(userToken, secret, (error, decoded) => {
+    if (error) res.status(403).send('Token is not valid');else {
+      res.status(200).send(_users_json__WEBPACK_IMPORTED_MODULE_0__);
+    }
+  });
 };
 
 /***/ }),
@@ -227,15 +208,17 @@ __webpack_require__.r(__webpack_exports__);
 var _users_json__WEBPACK_IMPORTED_MODULE_1___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../users.json */ "./users.json", 1);
 /* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! passport */ "passport");
 /* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(passport__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _jwt__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./jwt */ "./src/api/jwt.js");
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! jsonwebtoken */ "jsonwebtoken");
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(jsonwebtoken__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./middlewares/jwtAuth */ "./src/api/middlewares/jwtAuth.js");
 
 
 
 
-const userRouter = express__WEBPACK_IMPORTED_MODULE_0___default.a.Router();
-const auth = passport__WEBPACK_IMPORTED_MODULE_2___default.a.authenticate('jwt', {
-  session: false
-});
+
+const userRouter = express__WEBPACK_IMPORTED_MODULE_0___default.a.Router(); // const auth =passport.authenticate('jwt', {session:false})
+
+const auth = _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_4__["verifyJwt"];
 
 function userExist(id) {
   const user = _users_json__WEBPACK_IMPORTED_MODULE_1__.find(user => user.id == id);
@@ -277,7 +260,7 @@ userRouter.post('/', (req, res) => {
     res.status(412).send('Username and password are required fields.');
   }
 });
-userRouter.put('/:id', (req, res) => {
+userRouter.put('/:id', auth, (req, res) => {
   const id = req.params.id;
   const user = userExist(id);
   const updatedFields = ['firstname', 'lastname', 'birthday'];
@@ -290,7 +273,7 @@ userRouter.put('/:id', (req, res) => {
     res.status(200).send(user);
   } else res.status(404).send('User not found');
 });
-userRouter.delete('/:id', (req, res) => {
+userRouter.delete('/:id', auth, (req, res) => {
   const id = req.params.id;
   const user = userExist(id);
 
@@ -319,16 +302,15 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var volleyball__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(volleyball__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! passport */ "passport");
 /* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(passport__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var _api_middlewares_auth__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./api/middlewares/auth */ "./src/api/middlewares/auth.js");
-/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
-/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_4__);
-/* harmony import */ var cors__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! cors */ "cors");
-/* harmony import */ var cors__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(cors__WEBPACK_IMPORTED_MODULE_5__);
-/* harmony import */ var _api_users__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./api/users */ "./src/api/users.js");
-/* harmony import */ var _api_login__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./api/login */ "./src/api/login.js");
+/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
+/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var cors__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! cors */ "cors");
+/* harmony import */ var cors__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(cors__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _api_users__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./api/users */ "./src/api/users.js");
+/* harmony import */ var _api_login__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./api/login */ "./src/api/login.js");
 
 
-
+ // import {configJWTStrategy} from './api/middlewares/auth';
 
 
 
@@ -336,16 +318,16 @@ __webpack_require__.r(__webpack_exports__);
 
 const app = express__WEBPACK_IMPORTED_MODULE_0___default()();
 const port = 5432;
-app.use(cors__WEBPACK_IMPORTED_MODULE_5___default()());
+app.use(cors__WEBPACK_IMPORTED_MODULE_4___default()());
 app.use(volleyball__WEBPACK_IMPORTED_MODULE_1___default.a);
 app.use(express__WEBPACK_IMPORTED_MODULE_0___default.a.json());
 app.use(express__WEBPACK_IMPORTED_MODULE_0___default.a.urlencoded({
   extended: true
-}));
-app.use(passport__WEBPACK_IMPORTED_MODULE_2___default.a.initialize());
-Object(_api_middlewares_auth__WEBPACK_IMPORTED_MODULE_3__["configJWTStrategy"])();
-app.use('/users', _api_users__WEBPACK_IMPORTED_MODULE_6__["userRouter"]);
-app.use('/login', _api_login__WEBPACK_IMPORTED_MODULE_7__["loginRouter"]);
+})); // app.use(passport.initialize());
+// configJWTStrategy();
+
+app.use('/users', _api_users__WEBPACK_IMPORTED_MODULE_5__["userRouter"]);
+app.use('/login', _api_login__WEBPACK_IMPORTED_MODULE_6__["loginRouter"]);
 app.get('/', (req, res) => {
   console.log('tout est ok');
   res.json('ça marche');
@@ -429,17 +411,6 @@ module.exports = require("jsonwebtoken");
 /***/ (function(module, exports) {
 
 module.exports = require("passport");
-
-/***/ }),
-
-/***/ "passport-jwt":
-/*!*******************************!*\
-  !*** external "passport-jwt" ***!
-  \*******************************/
-/*! no static exports found */
-/***/ (function(module, exports) {
-
-module.exports = require("passport-jwt");
 
 /***/ }),
 

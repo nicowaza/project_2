@@ -1,7 +1,7 @@
 import express from 'express';
 import volleyball from 'volleyball';
 import passport from 'passport'
-import {configJWTStrategy} from './api/middlewares/auth';
+// import {configJWTStrategy} from './api/middlewares/auth';
 import 'dotenv/config'
 import cors from 'cors'
 import { userRouter } from './api/users'
@@ -15,10 +15,10 @@ app.use(volleyball);
 app.use(express.json())
 app.use(express.urlencoded({
   extended: true
-}))
-app.use(passport.initialize())
+}));
 
-configJWTStrategy()
+// app.use(passport.initialize());
+// configJWTStrategy();
 
 app.use('/users', userRouter);
 app.use('/login', loginRouter);

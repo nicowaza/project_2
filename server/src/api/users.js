@@ -1,11 +1,14 @@
 import express from 'express'
 import _users from '../../users.json'
 import passport from 'passport'
-import jwt from './jwt';
+import jwt from 'jsonwebtoken';
+import { verifyJwt } from './middlewares/jwtAuth'
 
 export const userRouter = express.Router()
 
-const auth =passport.authenticate('jwt', {session:false})
+// const auth =passport.authenticate('jwt', {session:false})
+
+const auth = verifyJwt;
 
 function userExist(id) {
   const user = _users.find((user) => user.id == id);
@@ -48,7 +51,7 @@ userRouter.post('/', (req, res) => {
   }
 });
 
-userRouter.put('/:id', (req, res) => {
+userRouter.put('/:id', auth, (req, res) => {
   const id = req.params.id;
   const user = userExist(id);
 
@@ -65,7 +68,7 @@ userRouter.put('/:id', (req, res) => {
   } else res.status(404).send('User not found');
 });
 
-userRouter.delete('/:id', (req, res) => {
+userRouter.delete('/:id', auth, (req, res) => {
   const id = req.params.id;
   const user = userExist(id);
 
