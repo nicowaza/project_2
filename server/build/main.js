@@ -88,6 +88,30 @@ module.exports =
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/api/dbconnection.js":
+/*!*********************************!*\
+  !*** ./src/api/dbconnection.js ***!
+  \*********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+'user strict';
+
+var mysql = __webpack_require__(/*! mysql */ "mysql");
+
+var connection = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: ""
+});
+connection.connect(function (err) {
+  if (err) throw err;
+  console.log("Connected!");
+});
+module.exports = connection;
+
+/***/ }),
+
 /***/ "./src/api/jwt.js":
 /*!************************!*\
   !*** ./src/api/jwt.js ***!
@@ -134,9 +158,13 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _jwt__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./jwt */ "./src/api/jwt.js");
 /* harmony import */ var _users_json__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../../users.json */ "./users.json");
 var _users_json__WEBPACK_IMPORTED_MODULE_2___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../users.json */ "./users.json", 1);
+/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
+/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_3__);
 
 
 
+
+const secret = process.env.key;
 const loginRouter = express__WEBPACK_IMPORTED_MODULE_0___default.a.Router();
 loginRouter.post('/', (req, res) => {
   const {
@@ -150,7 +178,7 @@ loginRouter.post('/', (req, res) => {
   if (user.password !== password) return res.status(412).send('Password incorrect');
   const token = _jwt__WEBPACK_IMPORTED_MODULE_1__["default"].issue({
     username
-  }, 'secret', {
+  }, secret, {
     expiresIn: 18000
   });
   console.log(token);
@@ -317,7 +345,23 @@ __webpack_require__.r(__webpack_exports__);
 
 
 const app = express__WEBPACK_IMPORTED_MODULE_0___default()();
-const port = 5432;
+
+const db = __webpack_require__(/*! ./api/dbconnection */ "./src/api/dbconnection.js");
+
+const port = 5434; // création de la dB
+
+db.query("CREATE DATABASE IF NOT EXISTS superHeroesDB CHARACTER SET 'utf8'", function (err, result) {
+  if (err) throw err;
+  console.log("database created");
+});
+db.query("CREATE TABLE IF NOT EXISTS superHeroesDB.users (userID INT NOT NULL UNIQUE AUTO_INCREMENT, username VARCHAR(255) NOT NULL UNIQUE, createdat DATETIME, firstname VARCHAR(255) NOT NULL, lastname VARCHAR(255) NOT NULL, avatarUrl VARCHAR(500), addressID INT NOT NULL, password VARCHAR(40) NOT NULL, birthday DATE)", function (err, result) {
+  if (err) throw err;
+  console.log("Table users created");
+});
+db.query("CREATE TABLE IF NOT EXISTS superHeroesDB.adress(adressID INT, city VARCHAR(255), country VARCHAR(255), postalCode INT)", function (err, result) {
+  if (err) throw err;
+  console.log("Table adress created");
+});
 app.use(cors__WEBPACK_IMPORTED_MODULE_4___default()());
 app.use(volleyball__WEBPACK_IMPORTED_MODULE_1___default.a);
 app.use(express__WEBPACK_IMPORTED_MODULE_0___default.a.json());
@@ -354,7 +398,7 @@ module.exports = [{"id":1001,"username":"bruce.wayne@wayne-entreprise.com","crea
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(/*! /home/simplonco/Bureau/Projets/Alternance/Login_exos/user_login_React/server/src/index.js */"./src/index.js");
+module.exports = __webpack_require__(/*! /home/tech/workspace/rcph/user_login_exo/server/src/index.js */"./src/index.js");
 
 
 /***/ }),
@@ -400,6 +444,17 @@ module.exports = require("express");
 /***/ (function(module, exports) {
 
 module.exports = require("jsonwebtoken");
+
+/***/ }),
+
+/***/ "mysql":
+/*!************************!*\
+  !*** external "mysql" ***!
+  \************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+module.exports = require("mysql");
 
 /***/ }),
 
