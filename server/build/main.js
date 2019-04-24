@@ -88,6 +88,72 @@ module.exports =
 /************************************************************************/
 /******/ ({
 
+/***/ "./src/api/adress.js":
+/*!***************************!*\
+  !*** ./src/api/adress.js ***!
+  \***************************/
+/*! exports provided: adressRouter */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+__webpack_require__.r(__webpack_exports__);
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "adressRouter", function() { return adressRouter; });
+/* harmony import */ var express__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! express */ "express");
+/* harmony import */ var express__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(express__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ./middlewares/jwtAuth */ "./src/api/middlewares/jwtAuth.js");
+/* harmony import */ var _dbconnection__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ./dbconnection */ "./src/api/dbconnection.js");
+/* harmony import */ var _dbconnection__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(_dbconnection__WEBPACK_IMPORTED_MODULE_2__);
+
+
+
+
+const mysql = __webpack_require__(/*! mysql */ "mysql");
+
+const adressRouter = express__WEBPACK_IMPORTED_MODULE_0___default.a.Router();
+const auth = _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_1__["verifyJwt"];
+adressRouter.get('/', auth, (req, res) => {
+  _dbconnection__WEBPACK_IMPORTED_MODULE_2___default.a.query('SELECT * FROM adress ', (err, results, fields) => {
+    if (err) {
+      console.log(err);
+      res.send({
+        err
+      });
+    } else {
+      console.log(results);
+      res.status(200).send({
+        status: true,
+        content: results
+      });
+    }
+  });
+});
+adressRouter.post('/', auth, (req, res) => {
+  const body = req.body;
+  let name = body.name;
+  let adress = body.adress;
+  let city = body.city;
+  let country = body.country;
+  let postalCode = body.postalCode;
+  let query = `INSERT INTO adress (name, adress, city, country, postalCode) VALUES ('${name}', '${adress}', '${city}', '${country}', '${postalCode}')`;
+  _dbconnection__WEBPACK_IMPORTED_MODULE_2___default.a.query(query, (err, results, fields) => {
+    if (err) {
+      console.log(err); // res.status(400).send({ status: false, message: 'User not created'})
+
+      res.send({
+        err
+      });
+    } else {
+      console.log(results);
+      res.send({
+        "code": 200,
+        "success": "new adress registered sucessfully"
+      });
+    }
+  });
+});
+
+/***/ }),
+
 /***/ "./src/api/dbconnection.js":
 /*!*********************************!*\
   !*** ./src/api/dbconnection.js ***!
@@ -102,11 +168,25 @@ var mysql = __webpack_require__(/*! mysql */ "mysql");
 var connection = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: ""
+  password: "",
+  database: "superHeroesDB"
 });
 connection.connect(function (err) {
   if (err) throw err;
-  console.log("Connected!");
+  console.log("Connected!"); // création de la dB
+
+  connection.query("CREATE DATABASE IF NOT EXISTS superHeroesDB CHARACTER SET 'utf8'", function (err, result) {
+    if (err) throw err;
+    console.log("database created");
+  });
+  connection.query("CREATE TABLE IF NOT EXISTS superHeroesDB.users (userID INT NOT NULL UNIQUE AUTO_INCREMENT, username VARCHAR(50) NOT NULL UNIQUE, createdat TIMESTAMP, firstname VARCHAR(255) NOT NULL, lastname VARCHAR(255) NOT NULL, avatarUrl VARCHAR(500), addressID INT NOT NULL, password VARCHAR(40) NOT NULL, birthday DATE)", function (err, result) {
+    if (err) throw err;
+    console.log("Table users created");
+  });
+  connection.query("CREATE TABLE IF NOT EXISTS superHeroesDB.adress(adressID INT NOT NULL UNIQUE AUTO_INCREMENT, name VARCHAR(255), adress VARCHAR(255), city VARCHAR(255), country VARCHAR(255), postalCode INT)", function (err, result) {
+    if (err) throw err;
+    console.log("Table adress created");
+  });
 });
 module.exports = connection;
 
@@ -160,6 +240,9 @@ __webpack_require__.r(__webpack_exports__);
 var _users_json__WEBPACK_IMPORTED_MODULE_2___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../users.json */ "./users.json", 1);
 /* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
 /* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_3__);
+/* harmony import */ var _dbconnection__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./dbconnection */ "./src/api/dbconnection.js");
+/* harmony import */ var _dbconnection__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_dbconnection__WEBPACK_IMPORTED_MODULE_4__);
+
 
 
 
@@ -168,22 +251,24 @@ const secret = process.env.key;
 const loginRouter = express__WEBPACK_IMPORTED_MODULE_0___default.a.Router();
 loginRouter.post('/', (req, res) => {
   const {
-    username,
-    password
-  } = req.body;
-
-  const user = _users_json__WEBPACK_IMPORTED_MODULE_2__.find(user => user.username === req.body.username);
-
-  if (!user) res.status(404).send('User not found');
-  if (user.password !== password) return res.status(412).send('Password incorrect');
-  const token = _jwt__WEBPACK_IMPORTED_MODULE_1__["default"].issue({
+    password,
     username
-  }, secret, {
-    expiresIn: 18000
+  } = req.body; // const user = _users.find((user) => user.username === req.body.username);
+
+  let query = `SELECT * FROM users WHERE username = '${username}'`;
+  _dbconnection__WEBPACK_IMPORTED_MODULE_4___default.a.query(query, (err, results) => {
+    if (!results) res.status(404).send('User not found');
+    if (results[0].password !== password) return res.status(404).send('Password incorrect');
+    const token = _jwt__WEBPACK_IMPORTED_MODULE_1__["default"].issue({
+      username
+    }, secret, {
+      expiresIn: 18000
+    });
+    console.log(token);
+    res.json({
+      'token': token
+    });
   });
-  console.log(token);
-  res.json(token);
-  res.status(200).send('ok');
 });
 
 /***/ }),
@@ -198,22 +283,21 @@ loginRouter.post('/', (req, res) => {
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "verifyJwt", function() { return verifyJwt; });
-/* harmony import */ var _users_json__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ../../../users.json */ "./users.json");
-var _users_json__WEBPACK_IMPORTED_MODULE_0___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../../users.json */ "./users.json", 1);
-/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! jsonwebtoken */ "jsonwebtoken");
-/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(jsonwebtoken__WEBPACK_IMPORTED_MODULE_1__);
-/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
-/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_2__);
- // import jwt from './jwt';
-
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jsonwebtoken */ "jsonwebtoken");
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jsonwebtoken__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! dotenv/config */ "dotenv/config");
+/* harmony import */ var dotenv_config__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(dotenv_config__WEBPACK_IMPORTED_MODULE_1__);
+// import _users from '../../../users.json';
+// import jwt from './jwt';
 
 
 const secret = process.env.key;
 const verifyJwt = (req, res, next) => {
-  const userToken = req.headers['user-auth-token'];
-  jsonwebtoken__WEBPACK_IMPORTED_MODULE_1___default.a.verify(userToken, secret, (error, decoded) => {
+  const userToken = req.headers['token'];
+  jsonwebtoken__WEBPACK_IMPORTED_MODULE_0___default.a.verify(userToken, secret, (error, decoded) => {
     if (error) res.status(403).send('Token is not valid');else {
-      res.status(200).send(_users_json__WEBPACK_IMPORTED_MODULE_0__);
+      res.status(200);
+      next();
     }
   });
 };
@@ -232,27 +316,30 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "userRouter", function() { return userRouter; });
 /* harmony import */ var express__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! express */ "express");
 /* harmony import */ var express__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(express__WEBPACK_IMPORTED_MODULE_0__);
-/* harmony import */ var _users_json__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! ../../users.json */ "./users.json");
-var _users_json__WEBPACK_IMPORTED_MODULE_1___namespace = /*#__PURE__*/__webpack_require__.t(/*! ../../users.json */ "./users.json", 1);
-/* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! passport */ "passport");
-/* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(passport__WEBPACK_IMPORTED_MODULE_2__);
-/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! jsonwebtoken */ "jsonwebtoken");
-/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_3___default = /*#__PURE__*/__webpack_require__.n(jsonwebtoken__WEBPACK_IMPORTED_MODULE_3__);
-/* harmony import */ var _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./middlewares/jwtAuth */ "./src/api/middlewares/jwtAuth.js");
+/* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! passport */ "passport");
+/* harmony import */ var passport__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(passport__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! jsonwebtoken */ "jsonwebtoken");
+/* harmony import */ var jsonwebtoken__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__webpack_require__.n(jsonwebtoken__WEBPACK_IMPORTED_MODULE_2__);
+/* harmony import */ var _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ./middlewares/jwtAuth */ "./src/api/middlewares/jwtAuth.js");
+/* harmony import */ var _dbconnection__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ./dbconnection */ "./src/api/dbconnection.js");
+/* harmony import */ var _dbconnection__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(_dbconnection__WEBPACK_IMPORTED_MODULE_4__);
+ // import _users from '../../users.json';
 
 
 
+ // const db = require ('./dbconnection');
 
+
+
+const mysql = __webpack_require__(/*! mysql */ "mysql");
 
 const userRouter = express__WEBPACK_IMPORTED_MODULE_0___default.a.Router(); // const auth =passport.authenticate('jwt', {session:false})
 
-const auth = _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_4__["verifyJwt"];
+const auth = _middlewares_jwtAuth__WEBPACK_IMPORTED_MODULE_3__["verifyJwt"]; // function userExist(id) {
+//   const user = _users.find((user) => user.id == id);
+//   return user;
+// }
 
-function userExist(id) {
-  const user = _users_json__WEBPACK_IMPORTED_MODULE_1__.find(user => user.id == id);
-
-  return user;
-}
 /**
  * req: Object containing all the request information,
  *      such as headers, params, body.
@@ -260,32 +347,54 @@ function userExist(id) {
  * res: Object containing all the response methods and information
  */
 
-
 userRouter.get('/', auth, (req, res) => {
-  res.status(200).send(_users_json__WEBPACK_IMPORTED_MODULE_1__);
+  _dbconnection__WEBPACK_IMPORTED_MODULE_4___default.a.query('SELECT * FROM users ', (err, results, fields) => {
+    if (err) {
+      console.log(err); // res.status(400).send({ status: false, message: 'User not created'})
+
+      res.send({
+        err
+      });
+    } else {
+      console.log(results);
+      res.status(200).send({
+        status: true,
+        content: results
+      });
+    }
+  });
 });
 userRouter.get('/:id', auth, (req, res) => {
   const id = req.params.id;
 
-  const user = _users_json__WEBPACK_IMPORTED_MODULE_1__.find(user => user.id == id);
+  const user = _users.find(user => user.id == id);
 
   if (user) res.status(200).send(user);else res.status(404).send('User not found');
 });
 userRouter.post('/', (req, res) => {
   const body = req.body;
+  let username = body.username;
+  let password = body.password;
 
-  if (body.username && body.password) {
-    const newUser = {
-      id: Date.now(),
-      username: body.username,
-      password: body.password
-    };
-
-    _users_json__WEBPACK_IMPORTED_MODULE_1__.push(newUser);
-
-    res.status(200).send(newUser);
+  if (!username || !password) {
+    res.status(412).send('Username and password are invalid');
   } else {
-    res.status(412).send('Username and password are required fields.');
+    let query = `INSERT INTO users (username, password) VALUES ('${username}', '${password}')`;
+    _dbconnection__WEBPACK_IMPORTED_MODULE_4___default.a.query(query, (err, results, fields) => {
+      if (err) {
+        console.log(err); // res.status(400).send({ status: false, message: 'User not created'})
+
+        res.send({
+          err
+        });
+      } else {
+        console.log(results);
+        res.send({
+          "code": 200,
+          "success": "new user registered sucessfully"
+        });
+      }
+    });
   }
 });
 userRouter.put('/:id', auth, (req, res) => {
@@ -306,7 +415,7 @@ userRouter.delete('/:id', auth, (req, res) => {
   const user = userExist(id);
 
   if (user) {
-    _users = _users_json__WEBPACK_IMPORTED_MODULE_1__.filter(user => user.id != id);
+    _users = _users.filter(user => user.id != id);
     res.status(200).send('');
   } else {
     res.status(404).send('User not found');
@@ -336,6 +445,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var cors__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(cors__WEBPACK_IMPORTED_MODULE_4__);
 /* harmony import */ var _api_users__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! ./api/users */ "./src/api/users.js");
 /* harmony import */ var _api_login__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(/*! ./api/login */ "./src/api/login.js");
+/* harmony import */ var _api_adress__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(/*! ./api/adress */ "./src/api/adress.js");
 
 
  // import {configJWTStrategy} from './api/middlewares/auth';
@@ -344,24 +454,9 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
+
 const app = express__WEBPACK_IMPORTED_MODULE_0___default()();
-
-const db = __webpack_require__(/*! ./api/dbconnection */ "./src/api/dbconnection.js");
-
-const port = 5434; // création de la dB
-
-db.query("CREATE DATABASE IF NOT EXISTS superHeroesDB CHARACTER SET 'utf8'", function (err, result) {
-  if (err) throw err;
-  console.log("database created");
-});
-db.query("CREATE TABLE IF NOT EXISTS superHeroesDB.users (userID INT NOT NULL UNIQUE AUTO_INCREMENT, username VARCHAR(255) NOT NULL UNIQUE, createdat DATETIME, firstname VARCHAR(255) NOT NULL, lastname VARCHAR(255) NOT NULL, avatarUrl VARCHAR(500), addressID INT NOT NULL, password VARCHAR(40) NOT NULL, birthday DATE)", function (err, result) {
-  if (err) throw err;
-  console.log("Table users created");
-});
-db.query("CREATE TABLE IF NOT EXISTS superHeroesDB.adress(adressID INT, city VARCHAR(255), country VARCHAR(255), postalCode INT)", function (err, result) {
-  if (err) throw err;
-  console.log("Table adress created");
-});
+const port = 5454;
 app.use(cors__WEBPACK_IMPORTED_MODULE_4___default()());
 app.use(volleyball__WEBPACK_IMPORTED_MODULE_1___default.a);
 app.use(express__WEBPACK_IMPORTED_MODULE_0___default.a.json());
@@ -372,6 +467,7 @@ app.use(express__WEBPACK_IMPORTED_MODULE_0___default.a.urlencoded({
 
 app.use('/users', _api_users__WEBPACK_IMPORTED_MODULE_5__["userRouter"]);
 app.use('/login', _api_login__WEBPACK_IMPORTED_MODULE_6__["loginRouter"]);
+app.use('/adress', _api_adress__WEBPACK_IMPORTED_MODULE_7__["adressRouter"]);
 app.get('/', (req, res) => {
   console.log('tout est ok');
   res.json('ça marche');
@@ -398,7 +494,7 @@ module.exports = [{"id":1001,"username":"bruce.wayne@wayne-entreprise.com","crea
 /*! no static exports found */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(/*! /home/tech/workspace/rcph/user_login_exo/server/src/index.js */"./src/index.js");
+module.exports = __webpack_require__(/*! /home/tech/workspace/cproh/user_login_exo/server/src/index.js */"./src/index.js");
 
 
 /***/ }),

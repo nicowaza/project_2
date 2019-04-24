@@ -6,26 +6,11 @@ import 'dotenv/config';
 import cors from 'cors';
 import { userRouter } from './api/users';
 import { loginRouter } from './api/login';
+import { adressRouter } from './api/adress';
+
 const app = express();
-const db = require('./api/dbconnection');
 
-const port = 5434;
-
-// création de la dB
-db.query("CREATE DATABASE IF NOT EXISTS superHeroesDB CHARACTER SET 'utf8'", function (err, result) {
-  if (err) throw err;
-  console.log("database created");
-});
-
-db.query("CREATE TABLE IF NOT EXISTS superHeroesDB.users (userID INT NOT NULL UNIQUE AUTO_INCREMENT, username VARCHAR(255) NOT NULL UNIQUE, createdat DATETIME, firstname VARCHAR(255) NOT NULL, lastname VARCHAR(255) NOT NULL, avatarUrl VARCHAR(500), addressID INT NOT NULL, password VARCHAR(40) NOT NULL, birthday DATE)",  function (err, result) {
-  if (err) throw err;
-  console.log("Table users created");
-});
-
-db.query("CREATE TABLE IF NOT EXISTS superHeroesDB.adress(adressID INT, city VARCHAR(255), country VARCHAR(255), postalCode INT)", function (err, result) {
-  if (err) throw err;
-  console.log("Table adress created");
-});
+const port = 5454;
 
 app.use(cors());
 app.use(volleyball);
@@ -39,6 +24,7 @@ app.use(express.urlencoded({
 
 app.use('/users', userRouter);
 app.use('/login', loginRouter);
+app.use('/adress', adressRouter);
 
 app.get('/', (req, res) => {
   console.log('tout est ok')

@@ -2,6 +2,7 @@ import express from 'express'
 import jwt from './jwt';
 import _users from '../../users.json';
 import 'dotenv/config';
+import connection from './dbconnection';
 
 const secret = process.env.key;
 
@@ -10,21 +11,20 @@ export const loginRouter = express.Router();
 
 loginRouter.post('/', (req, res) => {
 
-  const { username, password } = req.body
+  const { password, username } = req.body
 
-  const user = _users.find((user) => user.username === req.body.username);
+  // const user = _users.find((user) => user.username === req.body.username);
+  let query = `SELECT * FROM users WHERE username = '${username}'`;
 
-  if(!user) res.status(404).send('User not found')
-  if(user.password !== password) return res.status(412).send('Password incorrect')
+  connection.query(query, (err, results) => {
 
-  const token = jwt.issue({
-    username
-  }, secret, {expiresIn: 18000})
-  console.log(token)
-  res.json(token)
+    if(!results) res.status(404).send('User not found')
+      if(results[0].password !== password) return res.status(404).send('Password incorrect')
 
-  res.status(200).send('ok')
+      const token = jwt.issue({
+        username
+      }, secret, {expiresIn: 18000})
+      console.log(token)
+      res.json({'token': token})
+    })
 })
-
-
-

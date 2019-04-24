@@ -1,20 +1,22 @@
-import express from 'express'
-import _users from '../../users.json'
+import express from 'express';
+// import _users from '../../users.json';
 import passport from 'passport'
 import jwt from 'jsonwebtoken';
-import { verifyJwt } from './middlewares/jwtAuth'
-
+import { verifyJwt } from './middlewares/jwtAuth';
+// const db = require ('./dbconnection');
+import connection from './dbconnection';
+const mysql = require('mysql');
 export const userRouter = express.Router()
 
 // const auth =passport.authenticate('jwt', {session:false})
 
 const auth = verifyJwt;
 
-function userExist(id) {
-  const user = _users.find((user) => user.id == id);
+// function userExist(id) {
+//   const user = _users.find((user) => user.id == id);
 
-  return user;
-}
+//   return user;
+// }
 
 /**
  * req: Object containing all the request information,
@@ -23,7 +25,18 @@ function userExist(id) {
  * res: Object containing all the response methods and information
  */
 userRouter.get('/', auth, (req, res) => {
-  res.status(200).send(_users);
+  connection.query('SELECT * FROM users ', (err, results, fields) => {
+    if (err) {
+      console.log(err);
+      // res.status(400).send({ status: false, message: 'User not created'})
+      res.send({
+        err
+      })
+    }else {
+      console.log(results)
+      res.status(200).send({status: true, content: results});
+    }
+  });
 });
 
 userRouter.get('/:id', auth, (req, res) => {
@@ -36,20 +49,32 @@ userRouter.get('/:id', auth, (req, res) => {
 
 userRouter.post('/', (req, res) => {
   const body = req.body;
+  let username = body.username;
+  let password = body.password;
 
-  if (body.username && body.password) {
-    const newUser = {
-      id: Date.now(),
-      username: body.username,
-      password: body.password
-    };
+  if (!username || !password) {
+    res.status(412).send('Username and password are invalid')
+  }else{
 
-    _users.push(newUser);
-    res.status(200).send(newUser);
-  } else {
-    res.status(412).send('Username and password are required fields.');
+    let query = `INSERT INTO users (username, password) VALUES ('${username}', '${password}')`;
+
+    connection.query(query, (err, results, fields) => {
+      if (err) {
+        console.log(err);
+        // res.status(400).send({ status: false, message: 'User not created'})
+        res.send({
+          err
+        })
+      }else{
+        console.log(results);
+        res.send({
+          "code":200,
+          "success":"new user registered sucessfully"
+        });
+      }
+    })
   }
-});
+})
 
 userRouter.put('/:id', auth, (req, res) => {
   const id = req.params.id;
